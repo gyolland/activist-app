@@ -10,7 +10,9 @@ CREATE TABLE `t_person` (
   `nickname` varchar(40) DEFAULT NULL,
   `gender` char(1) DEFAULT NULL,
   `primary_phone` varchar(40) DEFAULT NULL,
-  `allow_text` int(11) DEFAULT '0' COMMENT 'Flag to indicate whether sending text messages to the phone number is allowed.',
+  `allow_text1` int(11) DEFAULT '0' COMMENT 'Flag to indicate whether sending text messages to the primary phone number is allowed.',
+  `phone2` varchar(40) DEFAULT NULL,
+  `allow_text2` int(11) DEFAULT '0' COMMENT 'Flag to indicate whether sending text messages to the phone2 number is allowed.',
   `primary_email` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=916 DEFAULT CHARSET=latin1
