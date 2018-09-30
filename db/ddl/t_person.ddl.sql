@@ -1,7 +1,8 @@
 CREATE TABLE `t_person` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `vanprecinct` varchar(40) DEFAULT NULL,
   `precinct` int(11) DEFAULT NULL,
-  `cd` int(11) DEFAULT NULL COMMENT 'Congressional District',
+  `cd` tinyint(4) DEFAULT NULL COMMENT 'Congressional District',
   `ocvr_voter_id` varchar(12) DEFAULT NULL,
   `vanid` varchar(20) DEFAULT NULL,
   `fname` varchar(40) NOT NULL,
@@ -10,9 +11,11 @@ CREATE TABLE `t_person` (
   `nickname` varchar(40) DEFAULT NULL,
   `gender` char(1) DEFAULT NULL,
   `primary_phone` varchar(40) DEFAULT NULL,
-  `allow_text1` int(11) DEFAULT '0' COMMENT 'Flag to indicate whether sending text messages to the primary phone number is allowed.',
+  `allow_text1` tinyint(4) DEFAULT '0' COMMENT 'Flag to indicate whether sending text messages to the primary phone number is allowed.',
   `phone2` varchar(40) DEFAULT NULL,
-  `allow_text2` int(11) DEFAULT '0' COMMENT 'Flag to indicate whether sending text messages to the phone2 number is allowed.',
+  `allow_text2` tinyint(4) DEFAULT '0' COMMENT 'Flag to indicate whether sending text messages to the phone2 number is allowed.',
   `primary_email` varchar(100) DEFAULT NULL,
+  `nda_on_file` boolean DEFAULT FALSE,
+  `assignment` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=916 DEFAULT CHARSET=latin1
+) ENGINE=InnoDB AUTO_INCREMENT=916 DEFAULT CHARSET=latin1;
