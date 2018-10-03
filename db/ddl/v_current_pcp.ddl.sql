@@ -1,5 +1,4 @@
-DROP VIEW IF EXISTS v_current_pcp;
-CREATE VIEW `v_current_pcp` AS
+CREATE OR REPLACE VIEW `v_current_pcp` AS
 SELECT
     p.vanid AS VANID
   , p.vanprecinct AS VANPrecinct
