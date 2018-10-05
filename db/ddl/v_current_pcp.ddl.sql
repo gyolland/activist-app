@@ -8,7 +8,7 @@ SELECT
   , p.fname AS FirstName
   , p.middlename AS MiddleName
   , p.nickname AS NickName
-  , suffix
+  , p.suffix
   , p.gender AS gender
   , ar.address
   , ar.city
