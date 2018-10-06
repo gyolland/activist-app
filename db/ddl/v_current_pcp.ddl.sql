@@ -9,7 +9,7 @@ SELECT
   , p.middlename AS MiddleName
   , p.nickname AS NickName
   , p.suffix
-  , p.gender AS gender
+  , p.gender AS Gender
   , ar.address
   , ar.city
   , ar.state
