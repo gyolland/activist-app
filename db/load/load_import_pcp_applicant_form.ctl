@@ -1,11 +1,11 @@
-LOAD DATA LOCAL INFILE 'pcp_form.csv'
+LOAD DATA LOCAL INFILE 'pcpform.csv'
     INTO TABLE t_import_pcp_applicant_form
-    FIELDS TERMINATED BY ',' 
-	OPTIONALLY ENCLOSED BY '"' 
+    FIELDS TERMINATED BY ','
+	OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\r\n'
 IGNORE 1 LINES
-(	
-    precinct 
+(
+    precinct
   , appl_timestamp
   , fname
   , lname
