@@ -9,7 +9,7 @@ CREATE TABLE t_person (
   lname varchar(40) NOT NULL,
   middlename varchar(40) DEFAULT NULL,
   nickname varchar(40) DEFAULT NULL,
-  suffix varchar(8) DEFAULT 'null',
+  suffix varchar(8) DEFAULT NULL,
   gender char(1) DEFAULT NULL,
   primary_phone varchar(40) DEFAULT NULL,
   allow_text1 tinyint(4) DEFAULT '0' COMMENT 'Flag to indicate whether sending text messages to the primary phone number is allowed.',
