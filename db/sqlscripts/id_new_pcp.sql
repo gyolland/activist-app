@@ -6,7 +6,8 @@ SELECT
   ,  o.precinct
   ,  o.ocvr_voter_id
 --  ,  o.fname AS ofname
-  ,  f_parse_firstname(o.fname) as fname
+--  ,  f_parse_firstname(o.fname) as fname
+  ,  f_get_word_part(o.fname, 1) AS fname
   ,  CASE instr(trim(o.fname), ' ') WHEN 0 THEN NULL
      ELSE trim(substr(trim(o.fname), instr(trim(o.fname), ' '), 100))
      END middlename

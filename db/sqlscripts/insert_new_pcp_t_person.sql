@@ -12,14 +12,15 @@
 SELECT MAX(id) FROM t_person;
 
 START TRANSACTION;
-
 INSERT INTO t_person (precinct, ocvr_voter_id, fname, lname, middlename, gender, assignment)
 SELECT 
 	  o.precinct
     , o.ocvr_voter_id
-    , f_parse_firstname(o.fname) AS fname
+    , f_get_word_part(o.fname, 1) AS fname
+   -- , f_parse_firstname(o.fname) AS fname
     , trim(o.lname) AS lname
-    , f_parse_lastname(o.fname) AS middlename
+    ,  f_get_word_part(o.fname, 2) AS middlename
+    -- , f_parse_lastname(o.fname) AS middlename
     , right(o.status_gender, 1) AS gender
     , o.assignment
 FROM t_import_ocvr_tmp o
@@ -27,12 +28,14 @@ LEFT JOIN t_person p USING(ocvr_voter_id)
 WHERE p.id is NULL ;
 
 -- Step 2: insert newly added t_person records into t_person_stage
+-- INSERT INTO t_person_stage
+ -- SELECT * FROM t_person WHERE id > XXX;
  INSERT INTO t_person_stage
- SELECT * FROM t_person WHERE id > XXX;
+ SELECT * FROM t_person WHERE id > 938;
 
 -- Step 3: Parse Assignment field to determine elected or appointed and 
  -- insert t_person_role records for the new PCPs
- INSERT INTO t_person_role(person_id, role_id, certified_pcp, elected, term_start_date, term_end_date, inactive)
+ -- INSERT INTO t_person_role(person_id, role_id, certified_pcp, elected, term_start_date, term_end_date, inactive)
  SELECT
 	ps.id AS person_id
   , 3 AS role_id -- role_id for PCP
@@ -43,20 +46,23 @@ WHERE p.id is NULL ;
   , FALSE as inactive
 FROM t_person_stage ps;
 
+SELECT * FROM t_person_stage ps;
 -- inspect before commit
 -- ROLLBACK;
--- COMMIT;
+COMMIT;
  
 -- Step 4: Enhance date in t_person_stage with date from PCP Applicant Form
 SELECT 
 	  o.precinct
     , o.ocvr_voter_id
     -- , o.fname AS fname_unparsed
-    , f_parse_firstname(o.fname) AS fname
+    -- , f_parse_firstname(o.fname) AS fname
+    ,  f_get_word_part(o.fname, 1) AS middlename
     -- , f.fname as ffname
     , trim(o.lname) AS lname
     -- , f.lname AS flname
-    , f_parse_lastname(o.fname) AS middlename
+    -- , f_parse_lastname(o.fname) AS middlename
+    ,  f_get_word_part(o.fname, 2) AS middlename
     , right(o.status_gender, 1) AS gender
     , f.phone as primary_phone
     , f.email as primary_email
@@ -71,4 +77,5 @@ WHERE p.id is NULL ;
 -- Step 5: Enhance date in t_person_stage with date from PCP Applicant Form
 
 -- Step 6: Produce draft of New Master PCP
+
 
