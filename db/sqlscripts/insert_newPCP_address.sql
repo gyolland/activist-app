@@ -1,4 +1,6 @@
 -- 
+START TRANSACTION;
+
 INSERT INTO t_address(person_id, type, address, city, state, zip5, zip4) 
 SELECT
     ps.id AS person_id

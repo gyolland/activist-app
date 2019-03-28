@@ -4,8 +4,7 @@ LOAD DATA LOCAL INFILE 'vanpcpmin.csv'
 	OPTIONALLY ENCLOSED BY '"'
 LINES TERMINATED BY '\r\n'
 IGNORE 1 LINES
-(   ocvr_voter_id
-  , vanid
+(   vanid
   , lname
   , fname
   , middlename
@@ -17,4 +16,5 @@ IGNORE 1 LINES
   , preferred_email
   , preferred_phone
   , vanprecinct
+  , @discard -- van precinct id, ex: 1638069
   );
