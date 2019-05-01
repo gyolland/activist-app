@@ -22,3 +22,13 @@ SELECT * FROM t_person_stage ;
 -- insect before commit
 COMMIT ;
 -- ROLLBACK;
+
+-- Alternate: Assumes mapping in OCVR_VOTER_ID
+-- NOTE: NOT USENG t_person_stage
+UPDATE t_person p, t_import_pcp_van_min_tmp v 
+SET p.vanid = ifnull(p.vanid, v.vanid)
+      , p.vanprecinct = v.vanprecinct
+      , p.cd = ifnull(p.cd, v.cd)
+      , p.primary_phone = ifnull(p.primary_phone, v.preferred_phone)
+      , p.primary_email = ifnull(p.primary_email, v.preferred_email)
+WHERE p.ocvr_voter_id = v.ocvr_voter_id ;
