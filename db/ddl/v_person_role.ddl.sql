@@ -61,3 +61,4 @@ CREATE OR REPLACE VIEW v_person_role AS
         LEFT JOIN t_person_role pr ON ((p.id = pr.person_id)))
         JOIN t_role r ON ((pr.role_id = r.id)))
         GROUP BY p.id , p.precinct , p.ocvr_voter_id , p.vanid , p.fname , p.lname , p.middlename , p.nickname , p.gender , p.primary_phone , p.primary_email) x
+        ;
