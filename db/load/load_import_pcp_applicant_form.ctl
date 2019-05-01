@@ -6,11 +6,12 @@ LINES TERMINATED BY '\r\n'
 IGNORE 1 LINES
 (
     precinct
-  , appl_timestamp
+  , @appl_timestamp
   , fname
   , lname
   , r_address
   , r_city
+  , @state
   , r_zip
   , email
   , phone
