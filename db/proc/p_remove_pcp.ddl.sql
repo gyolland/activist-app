@@ -6,6 +6,8 @@ CREATE PROCEDURE p_remove_pcp (p_term_end_date DATE)
 BEGIN
     DECLARE done INT DEFAULT FALSE;
     DECLARE v_error INT DEFAULT FALSE;
+    DECLARE errno INT;
+    DECLARE msg TEXT;
     DECLARE v_person_id INT;
     DECLARE v_action VARCHAR(20) DEFAULT 'REMOVED';
     DECLARE v_logmsg VARCHAR(255) DEFAULT 'PCP deactivated on report ';
@@ -21,14 +23,12 @@ BEGIN
            AND o.ocvr_voter_id IS NULL;
 
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET v_error = TRUE;
 
     OPEN c_pcp;
 
     deactivate: LOOP
         FETCH c_pcp INTO v_person_id;
-        -- IF done THEN
-        --     leave deactivate;
-        -- END IF;
 
         START TRANSACTION;
             INSERT INTO t_action_log(person_id, action, logmessage)
@@ -40,20 +40,23 @@ BEGIN
               AND inactive = FALSE ;
               
         -- how to I catch insert/update errors and rollback
-/*
         IF v_error THEN
+            GET CURRENT DIAGNOSTICS CONDITION 1
+                errno = MYSQL_ERRNO, msg = MESSAGE_TEXT;
             ROLLBACK;
+
+            INSERT INTO t_action_log(person_id, action, logmessage)
+            VALUES (v_person_id, 'ERROR', CONCAT(errno, ': ', msg));
         ELSE
             COMMIT;
-        END;
+        END IF ;
 
-        SET v_error FALSE;
-*/
+        SET v_error = FALSE;
 
         IF done THEN
             leave deactivate;
         END IF;
-    END LOOP;
+    END LOOP; --  End deactivate loop
 
     CLOSE c_pcp;
 
