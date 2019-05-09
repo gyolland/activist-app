@@ -11,6 +11,7 @@ be limited to 10 words.
 
 CREATE FUNCTION f_get_word_part (p_word_str VARCHAR(100), p_part_no INT)
 RETURNS VARCHAR(40)
+DETERMINISTIC
 BEGIN
     DECLARE l_word_part VARCHAR(40);
     DECLARE l_string VARCHAR(100);
@@ -20,6 +21,12 @@ BEGIN
     -- trim leading spaces and
     -- ensure there is at least 1 space on the end
     SET l_string = TRIM(p_word_str);
+
+    -- incase a single word with no leading or trailing spaces
+    -- only when p_part_no = 1, all other cases should return null
+    IF p_part_no = 1 THEN
+        SET l_word_part = l_string;
+    END IF;
 
     -- eliminate multiple continuous spaces
     WHILE INSTR(l_string, '  ') > 0  DO
