@@ -9,6 +9,7 @@ BEGIN
     DECLARE errno INT;
     DECLARE msg TEXT;
     DECLARE v_person_id INT;
+    DECLARE v_person_role_id INT;
     DECLARE v_action VARCHAR(20) DEFAULT 'REMOVED';
     DECLARE v_logmsg VARCHAR(255) DEFAULT 'PCP deactivated on report ';
 
@@ -32,8 +33,8 @@ BEGIN
 
             ROLLBACK;
 
-            INSERT INTO t_change_log(person_id, action, logmessage)
-            VALUES (v_person_id, 'ERROR', CONCAT(errno, ': ', msg));
+            INSERT INTO t_change_log(person_id, person_role_id, action, logmessage)
+            VALUES (v_person_id, v_person_role_id, 'ERROR', CONCAT(errno, ': ', msg));
         END;
 
     OPEN c_pcp;
@@ -44,20 +45,27 @@ BEGIN
             leave deactivate;
         END IF;
 
-        START TRANSACTION;
-            INSERT INTO t_change_log(person_id, action, logmessage)
-            VALUES (v_person_id, v_action, CONCAT(v_logmsg, p_term_end_date));
+        SELECT id INTO v_person_role_id
+        FROM t_person_role
+        WHERE person_id = v_person_id
+          AND role_id = 3 -- PCP
+          AND inactive = FALSE;
 
+        START TRANSACTION;
             UPDATE t_person_role SET term_end_date = p_term_end_date, inactive = TRUE 
             WHERE person_id = v_person_id 
               AND role_id = 3 -- PCP
               AND inactive = FALSE ;
-              
+
+            INSERT INTO t_change_log(person_id, person_role_id, action, logmessage)
+            VALUES (v_person_id, v_person_role_id, v_action, CONCAT(v_logmsg, p_term_end_date));
+
         IF v_error = '00000' THEN
             COMMIT;
         END IF ;
 
         SET v_error = '00000';
+        SET v_person_role_id = NULL;
 
     END LOOP; --  End deactivate loop
 
