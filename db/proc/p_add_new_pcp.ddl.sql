@@ -14,12 +14,12 @@ BEGIN
 
     -- OCVR fields
     DECLARE ocvr_voter_id VARCHAR(12);
-    -- DECLARE fname, lname, assignment VARCHAR(40);
-    DECLARE fname, lname VARCHAR(40);
+    DECLARE fname, lname, assignment VARCHAR(40);
+    -- DECLARE fname, lname VARCHAR(40);
     -- DECLARE v_fname, v_lname, v_middlename VARCHAR(40);
     DECLARE gender VARCHAR(10);
     -- DECLARE v_gender1 CHAR(1);
-    -- DECLARE precinct INT DEFAULT NULL;
+    DECLARE precinct INT DEFAULT NULL;
     DECLARE r_address, m_address VARCHAR(100);
     DECLARE r_city, m_city VARCHAR(40);
     DECLARE r_zip, m_zip VARCHAR(15);
@@ -28,6 +28,34 @@ BEGIN
     -- fields needed for t_person_role
     -- DECLARE term_start_date DATE;
     -- DECLARE v_elected INT DEFAULT FALSE;
+
+    DECLARE c_pcp CURSOR FOR
+    SELECT o.fname, o.lname, o.gender, o.precinct, o.ocvr_voter_id, o.assignment,
+        o.r_address, o.r_city, o.r_state, o.r_zip, o.m_address, o.m_city, o.m_state, o.m_zip
+      FROM t_import_ocvr_tmp o 
+      LEFT JOIN t_person p USING(ocvr_voter_id)
+     WHERE p.id IS NULL ;
+
+    -- condition/exception handlers
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET CURRENT DIAGNOSTICS CONDITION 1
+            @errno = MYSQL_ERRNO, @msg = MESSAGE_TEXT;
+        --    errno = MYSQL_ERRNO, msg = MESSAGE_TEXT;
+        -- SET v_error = errno;
+
+        ROLLBACK;
+
+        -- SET @_pid = v_person_id;
+        SET @_prid = v_person_role_id;
+        SET @_act = 'ERROR';
+        SET @_msg = CONCAT(@errno, ': ', @msg);
+
+        -- person_id, person_role_id, action, logmessage
+        EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+    END;
 
     SET @report_date = p_date_of_report;
 
@@ -49,40 +77,10 @@ BEGIN
     FROM 
         'INSERT INTO t_address (person_id, type, address, city, state, zip5, zip4) VALUES(?, ?, ?, ?, ?, ?, ?)';
 
-    DECLARE c_pcp CURSOR FOR
-    SELECT o.fname, o.lname, o.gender, o.precinct, o.ocvr_voter_id, o.assignment,
-        o.r_address, o.r_city, o.r_state, o.r_zip, o.m_address, o.m_city, o.m_state, o.m_zip
-      FROM t_import_ocvr_tmp o 
-      LEFT JOIN t_person p USING(ocvr_voter_id)
-     WHERE p.id IS NULL ;
-
-    -- condition/exception handlers
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
-
-    DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
-    BEGIN
-        GET CURRENT DIAGNOSTICS CONDITION 1
-            @errno = MYSQL_ERRNO, @msg = MESSAGE_TEXT;
-        --    errno = MYSQL_ERRNO, msg = MESSAGE_TEXT;
-        --SET v_error = errno;
-
-        ROLLBACK;
-
-        -- SET @_pid = v_person_id;
-        SET @_prid = v_person_role_id;
-        SET @_act = 'ERROR';
-        SET @_msg = CONCAT(@errno, ': ', @msg);
-
-        -- person_id, person_role_id, action, logmessage
-        EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
-    END;
-
     OPEN c_pcp;
 
-    newpcp LOOP
-    -- add PCP to t_person, collect t_person_id
-        -- first, middle, last name, gender, precinct, ocvr_voter_id, assignment
-        FETCH  c_pcp INTO fname, lname, gender, @precinct, ocvr_voter_id, @assignment,
+    newpcp: LOOP
+        FETCH  c_pcp INTO fname, lname, gender, precinct, ocvr_voter_id, assignment,
             r_address, r_city, r_state, r_zip, m_address, m_city, m_state, m_zip;
         IF done = TRUE THEN
             leave newpcp;
@@ -95,6 +93,7 @@ BEGIN
         SET @_ocvr = TRIM(ocvr_voter_id);
 
          START TRANSACTION;    
+    	-- add PCP to t_person, collect t_person_id
         -- fname, middle, lname, gender, precinct, ocvr_voter_id, assignment
         EXECUTE insert_person USING @_fname, @_middlename, @_lname, @_gender, @precinct, @_ocvr, @assignment;
 
