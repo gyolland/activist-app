@@ -4,6 +4,7 @@ DELIMITER $$
 
 CREATE FUNCTION `f_get_assignment_date` (p_assignment VARCHAR(100))
 RETURNS DATE
+DETERMINISTIC
 BEGIN
      -- assignment looks like: Appointed 12/14/2018 
      -- or Elected 6/8/2018 
