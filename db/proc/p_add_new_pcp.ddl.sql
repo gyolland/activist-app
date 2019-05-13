@@ -5,6 +5,7 @@ DELIMITER //
 CREATE PROCEDURE p_add_new_pcp (p_term_end_date DATE, p_date_of_report DATE)
 BEGIN
     DECLARE done INT DEFAULT FALSE;
+    DECLARE discontinue INT DEFAULT FALSE;
     -- DECLARE v_error INT DEFAULT FALSE;
     -- DECLARE errno INT;
     -- DECLARE msg TEXT;
@@ -49,9 +50,11 @@ BEGIN
         ROLLBACK;
 
         -- SET @_pid = v_person_id;
-        SET @_prid = v_person_role_id;
+        -- SET @_prid = v_person_role_id;
         SET @_act = 'ERROR';
         SET @_msg = CONCAT(@errno, ': ', @msg);
+
+        SET discontinue = TRUE;
 
         -- person_id, person_role_id, action, logmessage
         EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
@@ -91,71 +94,86 @@ BEGIN
         SET @_lname = TRIM(lname);
         SET @_gender = LEFT(TRIM(gender), 1);
         SET @_ocvr = TRIM(ocvr_voter_id);
+        SET @_precinct = precinct;
+        SET @_assignment = TRIM(assignment);
 
-         START TRANSACTION;    
-    	-- add PCP to t_person, collect t_person_id
-        -- fname, middle, lname, gender, precinct, ocvr_voter_id, assignment
-        EXECUTE insert_person USING @_fname, @_middlename, @_lname, @_gender, @precinct, @_ocvr, @assignment;
+        START TRANSACTION;    
+        IF discontinue = FALSE THEN
+            -- add PCP to t_person, collect t_person_id
+            -- fname, middle, lname, gender, precinct, ocvr_voter_id, assignment
+            EXECUTE insert_person USING @_fname, @_middlename, @_lname, @_gender, @_precinct, @_ocvr, @_assignment;
 
-        --  capture t_person id
-        SET @_pid = LAST_INSERT_ID();
+            --  capture t_person id
+            SET @_pid = LAST_INSERT_ID();
+        END IF;
 
         -- add t_person_role records
-        IF INSTR(@assignment, 'elect') > 0 THEN
+        IF INSTR(@_assignment, 'elect') > 0 THEN
             SET @_elected = TRUE;
         ELSE 
             SET @_elected = FALSE;
         END IF;
 
-        SET @_term_start = f_get_assignment_date(@assignment);
+        IF discontinue = FALSE THEN
+            SET @_term_start = f_get_assignment_date(@_assignment);
+            SET @_term_end = p_term_end_date;
 
-        -- person_id, role_id, certified_pcp, elected, term_start_date, term_end_date, inactive
-        SET @role = 3;
-        SET @cert = TRUE;
-        SET @inact = FALSE;
-        EXECUTE insert_person_role USING @_pid, @role, @cert, @_elected, @_term_start, @_term_end, @inact;
+            -- person_id, role_id, certified_pcp, elected, term_start_date, term_end_date, inactive
+            SET @role = 3;
+            SET @cert = TRUE;
+            SET @inact = FALSE;
+            EXECUTE insert_person_role USING @_pid, @role, @cert, @_elected, @_term_start, @_term_end, @inact;
 
-        -- capture t_person_role_id
-        SET @prid = LAST_INSERT_ID();
+            -- capture t_person_role_id
+            SET @prid = LAST_INSERT_ID();
+        END IF;
 
-        -- add address records - both resi & mail
-        -- person_id, type, address, city, state, zip5, zip4
-        -- voting/residential
-        SET @add_type = 'RESI';
-        SET @_address = TRIM(r_address);
-        SET @_city = TRIM(r_city);
-        SET @state = TRIM(r_state);
-        SET @_zip5 = LEFT(TRIM(r_zip), 5);
-        SET @_zip4 = CASE WHEN LENGTH(TRIM(r_zip)) > 5 THEN RIGHT(TRIM(r_zip), 4) ELSE NULL END;
-        EXECUTE insert_address USING @_pid, @add_type, @_address, @_city, @state, @_zip5, @_zip4;
-
-        IF LENGTH(TRIM(m_address)) > 0 THEN
-            -- mailing
-            SET @add_type = 'MAIL';
-            SET @_address = TRIM(m_address);
-            SET @_city = TRIM(m_city);
-            SET @state = TRIM(m_state);
-            SET @_zip5 = LEFT(TRIM(m_zip), 5);
-            SET @_zip4 = CASE WHEN LENGTH(TRIM(m_zip)) > 5 THEN RIGHT(TRIM(m_zip), 4) ELSE NULL END;
+        IF discontinue = FALSE THEN
+            -- add address records - both resi & mail
+            -- person_id, type, address, city, state, zip5, zip4
+            -- voting/residential
+            SET @add_type = 'RESI';
+            SET @_address = TRIM(r_address);
+            SET @_city = TRIM(r_city);
+            SET @state = TRIM(r_state);
+            SET @_zip5 = LEFT(TRIM(r_zip), 5);
+            SET @_zip4 = CASE WHEN LENGTH(TRIM(r_zip)) > 5 THEN RIGHT(TRIM(r_zip), 4) ELSE NULL END;
             EXECUTE insert_address USING @_pid, @add_type, @_address, @_city, @state, @_zip5, @_zip4;
+        END IF;
+
+        IF discontiue = FALSE THEN
+            IF LENGTH(TRIM(m_address)) > 0 THEN
+                -- mailing
+                SET @add_type = 'MAIL';
+                SET @_address = TRIM(m_address);
+                SET @_city = TRIM(m_city);
+                SET @state = TRIM(m_state);
+                SET @_zip5 = LEFT(TRIM(m_zip), 5);
+                SET @_zip4 = CASE WHEN LENGTH(TRIM(m_zip)) > 5 THEN RIGHT(TRIM(m_zip), 4) ELSE NULL END;
+                EXECUTE insert_address USING @_pid, @add_type, @_address, @_city, @state, @_zip5, @_zip4;
+            END IF;
         END IF;
 
         -- PCP application: email, phone 
 
         -- VAN: VANID, CD, vanprecinct
 
-        -- person_id, person_role_id, action, logmessage
-        SET @_act = 'ADDED';
-        SET @_msg = CONCAT('PCP added with report date: ', @report_date);
-        EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+        IF discontinue = FALSE THEN
+            -- person_id, person_role_id, action, logmessage
+            SET @_act = 'ADDED';
+            SET @_msg = CONCAT('PCP added with report date: ', @report_date);
+            EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+        END IF;
 
         COMMIT;
+
+        SET discontinue = FALSE;
     END LOOP; -- newpcp
 
     CLOSE c_pcp;
 
     -- deallocate prepared statements
-    DEALLOCATE PREPARE t_change_log;
+    DEALLOCATE PREPARE insert_change_log;
     DEALLOCATE PREPARE insert_person;
     DEALLOCATE PREPARE insert_person_role;
     DEALLOCATE PREPARE insert_address;
