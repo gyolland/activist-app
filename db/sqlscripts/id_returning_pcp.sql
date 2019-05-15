@@ -26,7 +26,7 @@ JOIN t_person_role r0 ON p.id = r0.person_id
 WHERE role_id = 3 -- PCP
 AND r0.term_end_date < now()
 AND r0.term_end_date IS NOT NULL 
-AND f_get_assignment_date(p.assignment) < f_get_assignment_date(o.assignment)
+-- AND f_get_assignment_date(p.assignment) < f_get_assignment_date(o.assignment)
 ORDER BY r0.person_id, r0.term_end_date ;
 
 -- SELECT PCPs newly appointed with previous Elected/Appointment that has expired term_end_date
@@ -41,10 +41,12 @@ SELECT
   , p.middlename
   , p.nickname
   , p.gender
-  , CASE WHEN p.fname <> f_get_word_part(o.fname, 1) 
-       THEN concat('OCVR: ',  f_get_word_part(o.fname, 1)) END AS fname_change
-  , CASE WHEN p.lname <> replace( trim(o.lname), ' ', '' )
-       THEN concat('OCVR: ',  trim(o.lname)) END AS lname_change
+  , f_get_assignment_date(p.assignment) AS old_assignment_date
+  , f_get_assignment_date(o.assignment) AS new_assignment_date
+--   , CASE WHEN p.fname <> f_get_word_part(o.fname, 1) 
+--        THEN concat('OCVR: ',  f_get_word_part(o.fname, 1)) END AS fname_change
+--   , CASE WHEN p.lname <> replace( trim(o.lname), ' ', '' )
+--        THEN concat('OCVR: ',  trim(o.lname)) END AS lname_change
  ,  CASE WHEN p.precinct <> o.precinct 
        THEN concat('OCVR: ', o.precinct) END AS precinct_change
 FROM t_person p 
