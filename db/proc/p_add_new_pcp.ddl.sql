@@ -91,7 +91,7 @@ BEGIN
         --  capture t_person id
         SET @_pid = LAST_INSERT_ID();
 
-        IF onError = TRUE;
+        IF onError = TRUE THEN
             ITERATE newpcp;
         END IF;
 
@@ -111,7 +111,7 @@ BEGIN
         SET @inact = FALSE;
         EXECUTE insert_person_role USING @_pid, @role, @cert, @_elected, @_term_start, @_term_end, @inact;
 
-        IF onError = TRUE;
+        IF onError = TRUE THEN
             ITERATE newpcp;
         END IF;
 
@@ -129,7 +129,7 @@ BEGIN
         SET @_zip4 = CASE WHEN LENGTH(TRIM(r_zip)) > 5 THEN RIGHT(TRIM(r_zip), 4) ELSE NULL END;
         EXECUTE insert_address USING @_pid, @add_type, @_address, @_city, @state, @_zip5, @_zip4;
 
-        IF onError = TRUE;
+        IF onError = TRUE THEN
             ITERATE newpcp;
         END IF;
 
@@ -144,7 +144,7 @@ BEGIN
             EXECUTE insert_address USING @_pid, @add_type, @_address, @_city, @state, @_zip5, @_zip4;
         END IF;
 
-        IF onError = TRUE;
+        IF onError = TRUE THEN
             ITERATE newpcp;
         END IF;
 
