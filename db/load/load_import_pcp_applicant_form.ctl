@@ -1,4 +1,4 @@
-LOAD DATA LOCAL INFILE 'pcpform.csv'
+LOAD DATA INFILE 'pcpform.csv'
     INTO TABLE t_import_pcp_applicant_form
     FIELDS TERMINATED BY ','
 	OPTIONALLY ENCLOSED BY '"'
@@ -9,14 +9,17 @@ IGNORE 1 LINES
   , @appl_timestamp
   , fname
   , lname
+  , @gender
   , r_address
   , r_city
   , @state
   , r_zip
   , email
-  , phone
+  , @phone
   , bio
   , experience
   , motivation
-  , gender
-);
+)
+   SET gender = substr(trim(@gender), 1, 1)
+   , phone = replace(@phone, '-', '')
+;

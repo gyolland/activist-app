@@ -17,4 +17,6 @@ IGNORE 1 LINES
   , preferred_phone
   , vanprecinct
   , @discard -- van precinct id, ex: 1638069
+  , @discard -- VoterVANID, ex: 1318291
+  , @discard -- notes
   );
