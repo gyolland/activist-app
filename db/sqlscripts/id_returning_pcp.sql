@@ -62,3 +62,22 @@ JOIN
 	WHERE r0.role_id = 3 -- PCPs
 	GROUP BY p.id, p.ocvr_voter_id
 	HAVING MAX(r0.term_end_date) < NOW()) b  USING(id) ;
+
+-- Use where exists to subquery to remove current pcps
+SELECT
+    pers.id
+  , concat(pers.fname, ' ', pers.lname) name
+  , pers.gender
+  , 'X' AS returning_pcp
+  FROM t_person pers 
+  JOIN t_import_ocvr_tmp ocvr USING (ocvr_voter_id)
+  JOIN ( SELECT * 
+          FROM t_person_role
+        WHERE inactive = TRUE 
+          AND role_id = 3 
+          AND term_end_date < now() ) r00 ON pers.id = r00.person_id
+ WHERE  NOT EXISTS (SELECT 'X' 
+                      FROM t_person_role t0 
+                    WHERE pers.id = t0.person_id 
+                      AND t0.inactive = FALSE 
+                      AND t0.role_id = 3)
