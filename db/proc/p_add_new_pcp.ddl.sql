@@ -116,7 +116,7 @@ BEGIN
         END IF;
 
         -- capture t_person_role_id
-        SET @prid = LAST_INSERT_ID();
+        SET @_prid = LAST_INSERT_ID();
 
         -- add address records - both resi & mail
         -- person_id, type, address, city, state, zip5, zip4
