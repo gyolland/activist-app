@@ -8,13 +8,6 @@ FROM
           p.id
         , concat(p.fname, ' ', p.lname) name
         , p.gender
-        , CASE WHEN p.fname <> f_get_word_part(o.fname, 1) 
-        THEN 'X' ELSE '' END AS fname_change
-        , CASE
-            WHEN p.lname <> trim(o.lname)
-            AND p.lname <> replace( trim(o.lname), ' ', '' )
-            AND replace(p.lname, '-', ' ') <> trim(o.lname)
-            THEN 'X' ELSE '' END AS lname_change
         , CASE 
             WHEN p.precinct <> o.precinct 
             THEN 'X' ELSE '' END AS precinct_change
@@ -34,28 +27,23 @@ UNION ALL
         pers.id
         , concat(pers.fname, ' ', pers.lname) name
         , pers.gender
-        , '' AS fname_change
-        , '' AS lname_change
         , '' AS precinct_change
         , '' AS address_change
         , 'X' AS returning_pcp
     FROM t_person pers 
     JOIN t_import_ocvr_tmp ocvr USING (ocvr_voter_id)
     JOIN ( SELECT * 
-             FROM t_person_role
-            WHERE inactive = TRUE 
-              AND role_id = 3 
-              AND term_end_date < now() ) r00 ON pers.id = r00.person_id
+				   FROM t_person_role
+				WHERE inactive = TRUE 
+                      AND role_id = 3 
+                      AND term_end_date < now() ) r00 ON pers.id = r00.person_id
     WHERE  NOT EXISTS (SELECT 'X' 
-                         FROM t_person_role t0 
-                        WHERE pers.id = t0.person_id 
-                          AND t0.inactive = FALSE 
-                          AND t0.role_id = 3)
-    ) u 
+											   FROM t_person_role t0 
+											WHERE pers.id = t0.person_id 
+												  AND t0.inactive = FALSE 
+												  AND t0.role_id = 3)  ) u 
 WHERE (
-       fname_change = 'X'
-    OR lname_change = 'X'
-    OR precinct_change = 'X'
-    OR address_change = 'X' 
-    OR returning_pcp = 'X' ) 
+          precinct_change 	= 'X'
+    OR address_change 	= 'X' 
+    OR returning_pcp 		= 'X' ) 
 ORDER BY id ;
