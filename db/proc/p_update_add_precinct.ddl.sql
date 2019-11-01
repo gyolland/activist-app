@@ -16,27 +16,31 @@ BEGIN
     DECLARE r_city, m_city VARCHAR(40);
     DECLARE r_zip, m_zip VARCHAR(15);
     DECLARE r_state, m_state VARCHAR(2);
-    DECLARE precinct_change, address_change BOOLEAN;
+    DECLARE precinct_change, address_change varchar(1);
 
     -- selection of columns needed for update
     DECLARE c_pcp CURSOR FOR 
-    SELECT person_id, ocvr_voter_id, precinct_change, address_change, precinct, 
-           r_address, r_city, r_state, r_zip, 
-           m_address, m_city, m_state, m_zip, assignment
-      FROM 
-    (SELECT p.id AS person_id, p.ocvr_voter_id , CASE WHEN p.precinct <> o.precinct THEN TRUE ELSE FALSE END AS precinct_change, 
-            CASE WHEN a.address <> o.r_address THEN TRUE ELSE FALSE END AS address_change, o.precinct, o.r_address,
-            o.r_city, o.r_state, o.r_zip, o.m_address, o.m_city, o.m_state, o.m_zip, o.assignment
+    SELECT p.id AS person_id
+         , p.ocvr_voter_id
+         , CASE WHEN p.precinct <> o.precinct THEN 'X' ELSE null END AS precinct_change
+         , CASE WHEN a.address <> o.r_address THEN 'X' ELSE null END AS address_change
+         , o.precinct
+         , o.r_address
+         , o.r_city
+         , o.r_state
+         , o.r_zip
+         , o.m_address
+         , o.m_city
+         , o.m_state
+         , o.m_zip
+         , o.assignment
        FROM t_person p 
        JOIN t_person_role r0 ON p.id = r0.person_id
        JOIN t_import_ocvr_tmp o USING(ocvr_voter_id)
        JOIN t_address a ON p.id = a.person_id
-      WHERE  r0.role_id = 3 
+      WHERE r0.role_id = 3 
         AND r0.inactive = FALSE
-        AND a.type = 'RESI'  ) u 
-     WHERE (
-           precinct_change 	= 'X'
-        OR address_change 	= 'X'  ) ;
+        AND a.type = 'RESI' ;
 
     -- condition/exception handlers
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -86,13 +90,48 @@ BEGIN
 
     OPEN c_pcp;
 
+        -- DEBUG
+        -- SET @_msg = concat('Before loop. Done: ', done);
+        -- SET @_pid = '000';
+        -- SET @_prid = '000';
+        -- EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+
     pcploop: LOOP
         SET onError = FALSE;
         SET @_prid = NULL;
 
+        -- DEBUG
+        -- SET @_msg = concat('Before Fetch. Done: ', done);
+        -- SET @_pid = '000';
+        -- SET @_prid = '000';
+        -- EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+
         FETCH  c_pcp INTO person_id, ocvr_voter_id, precinct_change, address_change, precinct, r_address, 
                           r_city, r_state, r_zip, m_address, m_city, m_state, m_zip, assignment;
+
+        -- DEBUG
+        -- SET @_msg = concat('After Fetch. address: ', ifnull(address_change,'o'), ' precinct: ', ifnull(precinct_change,'o'), ' Done: ', done);
+        -- SET @_pid = '000';
+        -- SET @_prid = '000';
+        -- EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+
+        IF address_change <> 'X' AND precinct_change <> 'X' THEN
+            -- DEBUG
+            -- SET @_msg = concat('No Match, iterate. Done: ', done);
+            -- SET @_pid = '000';
+            -- SET @_prid = '000';
+            -- EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+
+            ITERATE pcploop;
+        END IF;
+
         IF done = TRUE THEN
+            -- DEBUG
+            -- SET @_msg = concat('Done Check. Done: ', done);
+            -- SET @_pid = '000';
+            -- SET @_prid = '000';
+            -- EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+
             leave pcploop;
         END IF;
 
@@ -100,7 +139,7 @@ BEGIN
 
         START TRANSACTION;
 
-        IF address_change THEN
+        IF address_change = 'X' THEN
             SET @add_type = 'RESI';
             SET @_address = TRIM(r_address);
             SET @_city = TRIM(r_city);
@@ -129,7 +168,7 @@ BEGIN
             END IF;
         END IF;
 
-        IF precinct_change THEN
+        IF precinct_change = 'X' THEN
             SET @_assignment = TRIM(assignment);
 
             -- add t_person_role records
@@ -164,15 +203,18 @@ BEGIN
             END IF;
         END IF;
 
-        -- person_id, person_role_id, action, logmessage
-        SET @_act = 'ADDRESS/PRECINCT';
-        SET @_msg = CONCAT('PCP added with report date: ', @report_date);
-        EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+        IF address_change = 'X' OR precinct_change = 'X' THEN
+            -- person_id, person_role_id, action, logmessage
+            SET @_act = 'ADDRESS/PRECINCT';
+            SET @_msg = CONCAT('PCP added with report date: ', @report_date);
+            EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
 
-        COMMIT;
+            COMMIT;
+        END IF;
+
     END LOOP; -- pcploop
 
-    CLOSE c_returning;
+    CLOSE c_pcp;
 
     -- deallocate prepared statements
     DEALLOCATE PREPARE update_address;

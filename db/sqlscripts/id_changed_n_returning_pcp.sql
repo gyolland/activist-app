@@ -15,6 +15,7 @@ FROM
             WHEN a.address <> o.r_address 
             THEN 'X' ELSE '' END AS address_change
         , '' AS returning_pcp
+        , '' AS removed
        FROM t_person p 
        JOIN t_person_role r0 ON p.id = r0.person_id
        JOIN t_import_ocvr_tmp o USING(ocvr_voter_id)
@@ -23,15 +24,37 @@ FROM
         AND r0.inactive = FALSE
         AND a.type = 'RESI' 
 UNION ALL
+	SELECT
+			  p.id
+			, concat(p.fname, ' ', p.lname) name
+			, p.gender
+			, ''   AS precinct_change
+			, ''   AS address_change
+			, ''   AS returning_pcp
+			, 'X' AS removed
+		   FROM t_person p 
+		   JOIN t_person_role r0 ON p.id = r0.person_id
+		   LEFT JOIN t_import_ocvr_tmp o USING(ocvr_voter_id)
+		   WHERE p.gender <> 'X'
+	  AND r0.role_id = 3
+	  AND r0.inactive = FALSE
+	  AND o.ocvr_voter_id IS NULL
+UNION ALL
     SELECT
         pers.id
         , concat(pers.fname, ' ', pers.lname) name
         , pers.gender
-        , '' AS precinct_change
-        , '' AS address_change
+        , CASE 
+            WHEN pers.precinct <> ocvr.precinct 
+            THEN 'X' ELSE '' END AS precinct_change
+        , CASE 
+            WHEN a.address <> ocvr.r_address 
+            THEN 'X' ELSE '' END AS address_change
         , 'X' AS returning_pcp
+        , ''    AS removed
     FROM t_person pers 
     JOIN t_import_ocvr_tmp ocvr USING (ocvr_voter_id)
+    JOIN t_address a ON pers.id = a.person_id
     JOIN ( SELECT * 
 				   FROM t_person_role
 				WHERE inactive = TRUE 
@@ -45,5 +68,6 @@ UNION ALL
 WHERE (
           precinct_change 	= 'X'
     OR address_change 	= 'X' 
-    OR returning_pcp 		= 'X' ) 
+    OR returning_pcp 		= 'X'
+    OR removed 				= 'X' ) 
 ORDER BY id ;
