@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW `v_current_pcp` AS
+CREATE OR REPLACE VIEW v_current_pcp AS
 SELECT
     p.vanid
   , p.vanprecinct
