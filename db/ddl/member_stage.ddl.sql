@@ -22,7 +22,7 @@ CREATE TABLE member_stage (
   end_date        date          DEFAULT NULL,
   skey_long       varchar(120)  DEFAULT NULL,
   skey_short      varchar(120)  DEFAULT NULL,
-  PRIMARY KEY (tmp_id),
+  PRIMARY KEY (stg_id),
   KEY skey1_idx (skey_long),
   KEY skey2_idex (skey_short),
   UNIQUE KEY precinct_UNIQUE (stg_id)
