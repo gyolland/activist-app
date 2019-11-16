@@ -44,6 +44,9 @@ BEGIN
     -- remove spaces in string
     SET l_string = REPLACE(l_string, ' ', '');
 
+    -- remove hyphens in string
+    SET l_string = REPLACE(l_string, '-', '');
+
     -- remove single quotes in string
     SET l_string = REPLACE(l_string, '\'', '');
 
