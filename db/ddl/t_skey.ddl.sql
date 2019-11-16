@@ -5,7 +5,6 @@ t_skey: table to store surrogate keys and intended to be used to join imported
         reliable either but should provide a high likelyhood  of matching.
 ********************************************************************************/
 CREATE TABLE t_skey (
-  tmp_id        int(11)         DEFAULT '0',
   person_id     int(11)         NOT NULL DEFAULT '0',
   fname         varchar(40)     NOT NULL,
   middlename    varchar(40)     DEFAULT NULL,
