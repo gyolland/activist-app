@@ -89,6 +89,7 @@ BEGIN
                 leave memloop;
             END IF;
 
+        SET @member_id = NULL;
         -- SET @_pid = 2;
         -- SET @_act = 'CHECK';
         -- SET @_msg = CONCAT('After fecth, before error check. onError = ', onError);
