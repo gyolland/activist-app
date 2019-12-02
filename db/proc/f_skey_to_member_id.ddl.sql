@@ -15,6 +15,12 @@ DETERMINISTIC
 BEGIN
     DECLARE member_id INT DEFAULT NULL;
 
+    DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+    BEGIN
+        SET member_id = NULL;
+        RETURN member_id;
+    END; 
+
     SELECT person_id INTO member_id FROM t_skey WHERE skey_long = p_skey_long;
     IF member_id IS NULL THEN
         -- no match for skey_long, try skey_short
