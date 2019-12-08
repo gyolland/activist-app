@@ -1,5 +1,6 @@
 CREATE TABLE change_report (
     id              INT(11) AUTO_INCREMENT
+  , report_date     DATE DEFAULT NULL
   , person_id       INT(11) DEFAULT NULL
   , category        VARCHAR(40) DEFAULT NULL
   , message         TEXT DEFAULT NULL
