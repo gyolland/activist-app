@@ -14,6 +14,7 @@ BEGIN
     DECLARE l_status VARCHAR(30) DEFAULT NULL;
 
     DECLARE c_unmatched VARCHAR(30) DEFAULT 'UNMATCHED';
+    DECLARE c_inactive  VARCHAR(30) DEFAULT 'INACTIVE';
     DECLARE c_returning VARCHAR(30) DEFAULT 'RETURNING';
     DECLARE c_current   VARCHAR(30) DEFAULT 'CURRENT';
     DECLARE c_removed   VARCHAR(40) DEFAULT 'REMOVED';
@@ -24,11 +25,11 @@ BEGIN
     -- also will id returning and removed PCPs -- see derived status column
     DECLARE c_pcp CURSOR FOR
     SELECT
-        p.id            AS member_id
+          p.id                                  AS member_id
         , p.precinct
-        , IFNULL(e.d_fname, p.fname) AS fname
-        , IFNULL(e.d_middlename, p.middlename) AS middlename
-        , IFNULL(e.d_lname, p.lname) AS lname
+        , IFNULL(e.d_fname, p.fname)            AS fname
+        , IFNULL(e.d_middlename, p.middlename)  AS middlename
+        , IFNULL(e.d_lname, p.lname)            AS lname
         , a.address
         , m.precinct      AS mprecinct
         , m.fname         AS mfname
@@ -36,9 +37,10 @@ BEGIN
         , m.lname         AS mlname
         , m.r_address     AS mr_address
         -- , r0.term_end_date
-        , CASE WHEN m.member_id IS NULL THEN 'UNMATCHED' 
-                    WHEN r0.term_end_date < now() THEN 'RETURNING'
-                ELSE 'CURRENT' END AS status
+        , CASE WHEN m.member_id IS NULL AND r0.term_end_date < now() THEN 'INACTIVE'
+               WHEN m.member_id IS NULL THEN 'UNMATCHED' 
+               WHEN r0.term_end_date < now() THEN 'RETURNING'
+               ELSE 'CURRENT' END AS status
     FROM t_person p 
     JOIN ( SELECT person_id, max(term_end_date) AS term_end_date  
                 FROM t_person_role     -- return only most recent
@@ -96,6 +98,8 @@ BEGIN
         SET @person_id = l_member_id;
         
         CASE l_status
+        WHEN c_inactive THEN
+            ITERATE pcploop;
         WHEN c_unmatched THEN 
             SET @category = c_removed;
             SET @msg = CONCAT( l_fname, ' ', l_lname );
