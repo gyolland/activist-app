@@ -117,9 +117,9 @@ BEGIN
         -- SET @_msg = CONCAT('Values: ', @skey_long);
         -- EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
 
-        SET @fname          = TRIM(l_fname);
-        SET @middlename     = TRIM(l_middlename);
-        SET @lname          = TRIM(l_lname);
+        SET @fname          = f_cleanse_name(l_fname);
+        SET @middlename     = f_cleanse_name(l_middlename);
+        SET @lname          = f_cleanse_name(l_lname);
         SET @suffix         = TRIM(l_suffix);
         SET @precinct       = l_precinct;
         SET @voter_id       = TRIM(l_voter_id);
