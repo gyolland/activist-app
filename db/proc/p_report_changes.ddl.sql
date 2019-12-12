@@ -26,9 +26,9 @@ BEGIN
     SELECT
         p.id            AS member_id
         , p.precinct
-        , p.fname
-        , p.middlename
-        , p.lname
+        , IFNULL(e.d_fname, p.fname) AS fname
+        , IFNULL(e.d_middlename, p.middlename) AS middlename
+        , IFNULL(e.d_lname, p.lname) AS lname
         , a.address
         , m.precinct      AS mprecinct
         , m.fname         AS mfname
@@ -45,7 +45,9 @@ BEGIN
                 WHERE role_id = 3         -- PCP role record
         GROUP BY person_id  ) r0 ON p.id = r0.person_id
     JOIN (SELECT * FROM t_address WHERE type = 'RESI') a ON p.id = a.person_id
+    LEFT JOIN exception e ON p.id = e.person_id
     LEFT JOIN member_stage m ON p.id = m.member_id ;
+
 
     -- condition/exception handlers
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
@@ -57,22 +59,28 @@ BEGIN
 
         ROLLBACK;
 
-        SET @_act = 'ERROR';
-        SET @_msg = CONCAT(@errno, ': ', @msg);
+        SET @msg = CONCAT(@errno, ': ', @msg);
 
         SET onError = TRUE;
 
-        -- person_id, person_role_id, action, logmessage
-        EXECUTE insert_change_log USING @_pid, @_prid, @_act, @_msg;
+        -- person_id, logmessage
+        EXECUTE insert_error USING @person_id, @msg;
     END;
+
+    PREPARE insert_error
+    FROM
+    'INSERT INTO error_log(person_id, logmessage) VALUES(?, ?)';
 
     PREPARE insert_change
     FROM 
-    'INSERT INTO change_report(person_id, category, message) VALUES (?, ?, ?)';
+    'INSERT INTO change_report(report_date, person_id, category, message) VALUES (?, ?, ?, ?)';
+
+    SET @report_date = str_to_date(p_report_date, '%Y-%m-%e');
 
     OPEN c_pcp;
 
     pcploop: LOOP
+        SET onError = FALSE;
         SET changed = FALSE;
         SET @person_id = NULL;
         SET @category = NULL;
@@ -90,10 +98,10 @@ BEGIN
         CASE l_status
         WHEN c_unmatched THEN 
             SET @category = c_removed;
-            SET @msg = CONCAT( 'Rpt Dt: ', p_report_date, ' - ', l_fname, ' ', l_lname );
+            SET @msg = CONCAT( l_fname, ' ', l_lname );
         WHEN c_returning THEN
             SET @category = c_returning;
-            SET @msg = CONCAT( 'Rpt Dt: ', p_report_date, ' - ', l_fname, ' ', l_lname );
+            SET @msg = CONCAT( l_precinct, ' ', l_fname, ' ', l_lname );
         WHEN c_current THEN
             IF l_precinct <> l_mprecinct THEN
                 SET changed = TRUE;
@@ -105,20 +113,28 @@ BEGIN
             OR l_lname <> l_mlname
             THEN
                 SET changed = TRUE;
-                SET @category = CONCAT(IFNULL(@category, ''), ', NAME');
-                SET @name = CONCAT(l_mfname, ' ', l_mmiddlename, ' ', l_mlname);
+                SET @category = CONCAT(IFNULL(@category, ''), 'NAME');
+                SET @name = CONCAT(l_mfname, ' ', ifnull(l_mmiddlename, ''), ' ', l_mlname);
                 SET @msg = CONCAT(IFNULL(@msg, ''), ' new name: ', @name);
             END IF;
             IF l_address <> l_maddress THEN
                 SET changed = TRUE;
                 SET @category = CONCAT(IFNULL(@category, ''), ', ADDRESS');
-                SET @msg = CONCAT(IFNULL(@msg, ''), 'new address: ', l_maddres)s;
+                SET @msg = CONCAT(IFNULL(@msg, ''), 'new address: ', l_maddress);
             END IF;
-        END CASE; -- end case
+        END CASE;  -- end case
 
         IF l_status = c_unmatched OR l_status = c_returning OR changed  = TRUE THEN
-            EXECUTE insert_change USING @person_id, @category, @msg;
+            START TRANSACTION;
+            EXECUTE insert_change USING @report_date, @person_id, @category, @msg;
         END IF;
+
+        IF onError = TRUE THEN
+            ITERATE pcploop;
+        ELSE
+            COMMIT;
+        END IF;
+
     END LOOP; -- pcploop
 
     CLOSE c_pcp;
