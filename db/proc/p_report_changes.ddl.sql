@@ -24,31 +24,35 @@ BEGIN
     -- test precinct, fname, middlename, lname, residential addresss
     -- also will id returning and removed PCPs -- see derived status column
     DECLARE c_pcp CURSOR FOR
-    SELECT
-          p.id                                  AS member_id
-        , p.precinct
-        , IFNULL(e.d_fname, p.fname)            AS fname
-        , IFNULL(e.d_middlename, p.middlename)  AS middlename
-        , IFNULL(e.d_lname, p.lname)            AS lname
-        , a.address
-        , m.precinct      AS mprecinct
-        , m.fname         AS mfname
-        , m.middlename    AS mmiddlename
-        , m.lname         AS mlname
-        , m.r_address     AS mr_address
-        -- , r0.term_end_date
-        , CASE WHEN m.member_id IS NULL AND r0.term_end_date < now() THEN 'INACTIVE'
-               WHEN m.member_id IS NULL THEN 'UNMATCHED' 
-               WHEN r0.term_end_date < now() THEN 'RETURNING'
-               ELSE 'CURRENT' END AS status
-    FROM t_person p 
-    JOIN ( SELECT person_id, max(term_end_date) AS term_end_date  
-                FROM t_person_role     -- return only most recent
-                WHERE role_id = 3         -- PCP role record
-        GROUP BY person_id  ) r0 ON p.id = r0.person_id
-    JOIN (SELECT * FROM t_address WHERE type = 'RESI') a ON p.id = a.person_id
-    LEFT JOIN exception e ON p.id = e.person_id
-    LEFT JOIN member_stage m ON p.id = m.member_id ;
+    SELECT  member_id, precinct, fname, middlename, lname, address, 
+            mprecinct, mfname, mmiddlename, mlname, mr_address, status
+      FROM (
+        SELECT
+            p.id                                  AS member_id
+            , p.precinct
+            , IFNULL(e.d_fname, p.fname)            AS fname
+            , IFNULL(e.d_middlename, p.middlename)  AS middlename
+            , IFNULL(e.d_lname, p.lname)            AS lname
+            , a.address
+            , m.precinct      AS mprecinct
+            , m.fname         AS mfname
+            , m.middlename    AS mmiddlename
+            , m.lname         AS mlname
+            , m.r_address     AS mr_address
+            -- , r0.term_end_date
+            , CASE WHEN m.member_id IS NULL AND r0.term_end_date < now() THEN 'INACTIVE'
+                WHEN m.member_id IS NULL THEN 'UNMATCHED' 
+                WHEN r0.term_end_date < now() THEN 'RETURNING'
+                ELSE 'CURRENT' END AS status
+        FROM t_person p 
+        JOIN ( SELECT person_id, max(term_end_date) AS term_end_date  
+                    FROM t_person_role     -- return only most recent
+                    WHERE role_id = 3         -- PCP role record
+            GROUP BY person_id  ) r0 ON p.id = r0.person_id
+        JOIN (SELECT * FROM t_address WHERE type = 'RESI') a ON p.id = a.person_id
+        LEFT JOIN exception e ON p.id = e.person_id
+        LEFT JOIN member_stage m ON p.id = m.member_id)
+    WHERE status <> c_inactive ;
 
 
     -- condition/exception handlers
