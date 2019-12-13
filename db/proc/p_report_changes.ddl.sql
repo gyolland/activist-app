@@ -51,7 +51,7 @@ BEGIN
             GROUP BY person_id  ) r0 ON p.id = r0.person_id
         JOIN (SELECT * FROM t_address WHERE type = 'RESI') a ON p.id = a.person_id
         LEFT JOIN exception e ON p.id = e.person_id
-        LEFT JOIN member_stage m ON p.id = m.member_id)
+        LEFT JOIN member_stage m ON p.id = m.member_id) active_member
     WHERE status <> c_inactive ;
 
 
