@@ -1,0 +1,16 @@
+source ./ddl/t_person.ddl.sql
+source ./ddl/t_role.ddl.sql
+source ./ddl/t_person_role.ddl.sql
+source ./ddl/t_address.ddl.sql
+source ./ddl/t_change_log.ddl.sql
+source ./ddl/t_imp_mced_xl.ddl.sql
+source ./ddl/t_import_ocvr_tmp.ddl.sql
+source ./ddl/t_skey.ddl.sql
+source ./ddl/change_report.ddl.sql
+source ./ddl/exception.ddl.sql
+source ./ddl/member_stage.ddl.sql
+source ./ddl/v_address.ddl.sql
+source ./ddl/v_comparison_columns.ddl.sql
+source ./ddl/v_current_pcp.ddl.sql
+source ./ddl/v_person_role.ddl.sql
+source ./ddl/v_volunteer_coordinator.ddl.sql
