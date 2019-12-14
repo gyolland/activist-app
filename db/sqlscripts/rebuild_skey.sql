@@ -1,6 +1,4 @@
-SELECT * FROM t_skey;
-SELECT count(*) FROM t_skey;
-
+-- rebuild_skey: truncates and repopulates a surrogate key table 
 TRUNCATE t_skey;
 
 INSERT INTO t_skey (person_id, fname, middlename, lname, skey_long, skey_short)
