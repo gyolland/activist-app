@@ -147,7 +147,8 @@ BEGIN
 
     CLOSE c_pcp;
 
-    DEALLOCATE PREPARE insert_change;
+    DEALLOCATE PREPARE insert_error ;
+    DEALLOCATE PREPARE insert_change ;
 END //
 
 DELIMITER ;
