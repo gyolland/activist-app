@@ -1,0 +1,16 @@
+drop table t_person_role;
+drop table t_address;
+drop table t_role;
+drop table t_person;
+drop table t_change_log;
+drop table t_imp_mced_xl;
+drop table t_import_ocvr_tmp;
+drop table t_skey;
+drop table change_report;
+drop table exception;
+drop table member_stage;
+drop view v_address;
+drop view v_comparison_columns;
+drop view v_current_pcp;
+drop view v_person_role;
+drop view v_volunteer_coordinator;
