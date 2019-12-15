@@ -95,14 +95,14 @@ BEGIN
         EXECUTE insert_change USING @report_date, @person_id, @category, @msg ;
 
         IF onError = TRUE THEN
-            ITERATE pcploop;
+            ITERATE newpcploop;
         ELSE
             COMMIT;
         END IF;
 
     END LOOP; -- newpcploop
 
-    CLOSE c_pcp;
+    CLOSE c_new ;
 
     DEALLOCATE PREPARE insert_error ;
     DEALLOCATE PREPARE insert_change ;
