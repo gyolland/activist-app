@@ -8,7 +8,7 @@ BEGIN
     DECLARE onError INT DEFAULT FALSE;
     DECLARE changed BOOLEAN DEFAULT FALSE;
 
-    DECLARE l_member_id, l_precinct, l_mprecinct INT DEFAULT NULL;
+    DECLARE l_member_id, l_precinct, l_mprecinct, l_stg_id INT DEFAULT NULL;
     DECLARE l_fname, l_middlename, l_lname, l_mfname, l_mmiddlename, l_mlname, l_category VARCHAR(40) DEFAULT NULL;
     DECLARE l_address, l_maddress VARCHAR(100) DEFAULT NULL;
     DECLARE l_status VARCHAR(30) DEFAULT NULL;
@@ -23,6 +23,7 @@ BEGIN
         , m.lname
         , m.r_address 
         , 'NEW' AS status
+        , m.stg_id
       FROM member_stage m
       LEFT JOIN t_person p ON m.member_id = p.id
      WHERE p.id IS NULL 
@@ -35,6 +36,7 @@ BEGIN
         , m.lname
         , m.r_address 
         , 'NEW' AS status
+        , m.stg_id
       FROM t_person pers 
       JOIN member_stage m ON pers.id = m.member_id
       JOIN t_person_role r00 ON pers.id = r00.person_id
@@ -67,7 +69,7 @@ BEGIN
 
     PREPARE insert_change
     FROM 
-    'INSERT INTO change_report(report_date, person_id, category, message) VALUES (?, ?, ?, ?)';
+    'INSERT INTO change_report(report_date, person_id, category, message, stg_id) VALUES (?, ?, ?, ?, ?)';
 
     SET @report_date = str_to_date(p_report_date, '%Y-%m-%e');
 
@@ -77,22 +79,26 @@ BEGIN
         SET onError = FALSE;
         SET changed = FALSE;
         SET @person_id = NULL;
+        SET @person_name = NULL;
         SET @category = NULL;
         SET @msg = NULL;
+        SET @stg_id = NULL;
 
         FETCH c_new INTO 
-        l_member_id, l_precinct, l_fname, l_middlename, l_lname, l_address, l_status ;
+        l_member_id, l_precinct, l_fname, l_middlename, l_lname, l_address, l_status, l_stg_id ;
         IF done = TRUE THEN
             leave newpcploop;
         END IF;
 
         SET @person_id = l_member_id ; 
+        SET @person_name = REPLACE(CONCAT_WS(' ', l_fname, l_middlename, l_lname), '  ', ' ');
         SET @category = l_status ;
-        SET @msg = CONCAT_WS(' ', l_fname, ifnull(l_middlename, ''), l_lname, l_precinct, l_address) ;
+        SET @msg = CONCAT_WS(' ', l_precinct, '|', @person_name, '|', l_address) ;
+        SET @stg_id = l_stg_id;
         
         START TRANSACTION;
 
-        EXECUTE insert_change USING @report_date, @person_id, @category, @msg ;
+        EXECUTE insert_change USING @report_date, @person_id, @category, @msg, @stg_id ;
 
         IF onError = TRUE THEN
             ITERATE newpcploop;
