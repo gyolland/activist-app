@@ -66,6 +66,7 @@ BEGIN
     END IF;
 
     DEALLOCATE PREPARE inactivate_person_role;
+    DEALLOCATE PREPARE insert_change_log;
 END //
 
 DELIMITER ;
