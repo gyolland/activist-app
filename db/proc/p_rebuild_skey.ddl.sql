@@ -1,7 +1,7 @@
-CREATE PROCEDURE p_rebuild_skey()
-BEGIN
+DROP PROCEDURE IF EXISTS p_rebuild_skey;
 
-TRUNCATE t_skey;
+DELIMITER //
+
 CREATE PROCEDURE p_rebuild_skey()
 BEGIN
     -- rebuild_skey: truncates and repopulates a surrogate key table
@@ -23,6 +23,7 @@ BEGIN
     FROM t_skey
     GROUP BY skey_short
     HAVING count(*) > 1;
+
 END //
 
 DELIMITER ;
