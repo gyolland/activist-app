@@ -104,8 +104,8 @@ BEGIN
 
         SET @person_id = l_member_id;
         SET @stg_id = l_stg_id ;
-        SET @person_name = REPLACE(CONCAT_WS(' ', l_fname, l_middlename, l_lname), '  ', ' ');
-        SET @msg = CONCAT_WS(' ', l_precinct,'|', @person_name, '|', l_address);
+        SET @person_name = REPLACE(CONCAT_WS(' ', ifnull(l_mfname, l_fname), ifnull(l_mmiddlename, l_middlename), ifnull(l_mlname, l_lname)), '  ', ' ');
+        SET @msg = CONCAT_WS(' ', ifnull(l_mprecinct, l_precinct),'|', @person_name, '|', ifnull(l_maddress, l_address));
         
         CASE l_status
         WHEN c_inactive THEN
