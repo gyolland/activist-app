@@ -80,7 +80,7 @@ BEGIN
 
     PREPARE insert_change
     FROM 
-    'INSERT INTO change_report(report_date, person_id, category, message, stg_id) VALUES (?, ?, ?, ?, ?)';
+    'INSERT INTO change_report(report_date, person_id, category, new_data, old_data, stg_id) VALUES (?, ?, ?, ?, ?, ?)';
 
     SET @report_date = str_to_date(p_report_date, '%Y-%m-%e');
 
@@ -92,7 +92,8 @@ BEGIN
         SET @person_id = NULL;
         SET @person_name = NULL;
         SET @category = NULL;
-        SET @msg = NULL;
+        SET @msg_new = NULL;
+        SET @msg_old = NULL;
         SET @stg_id = NULL;
 
         FETCH c_pcp INTO 
@@ -105,13 +106,16 @@ BEGIN
         SET @person_id = l_member_id;
         SET @stg_id = l_stg_id ;
         SET @person_name = REPLACE(CONCAT_WS(' ', ifnull(l_mfname, l_fname), ifnull(l_mmiddlename, l_middlename), ifnull(l_mlname, l_lname)), '  ', ' ');
-        SET @msg = CONCAT_WS(' ', ifnull(l_mprecinct, l_precinct),'|', @person_name, '|', ifnull(l_maddress, l_address));
+        -- SET @msg = CONCAT_WS(' ', ifnull(l_mprecinct, l_precinct),'|', @person_name, '|', ifnull(l_maddress, l_address));
+        SET @msg_new = CONCAT_WS(' ', l_mprecinct, '|', @person_name, '|', l_maddress);
+        SET @msg_old = CONCAT_WS(' ', l_precinct, '|', @person_name, '|', l_address);
         
         CASE l_status
         WHEN c_inactive THEN
             ITERATE pcploop;
         WHEN c_unmatched THEN 
             SET @category = c_removed;
+            SET @msg_new = NULL;
         WHEN c_returning THEN
             SET @category = c_returning;
         WHEN c_current THEN
@@ -135,7 +139,7 @@ BEGIN
 
         IF l_status = c_unmatched OR l_status = c_returning OR changed  = TRUE THEN
             START TRANSACTION;
-            EXECUTE insert_change USING @report_date, @person_id, @category, @msg, @stg_id;
+            EXECUTE insert_change USING @report_date, @person_id, @category, @msg_new, @msg_old, @stg_id;
         END IF;
 
         IF onError = TRUE THEN

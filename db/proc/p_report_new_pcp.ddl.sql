@@ -69,7 +69,7 @@ BEGIN
 
     PREPARE insert_change
     FROM 
-    'INSERT INTO change_report(report_date, person_id, category, message, stg_id) VALUES (?, ?, ?, ?, ?)';
+    'INSERT INTO change_report(report_date, person_id, category, new_data, stg_id) VALUES (?, ?, ?, ?, ?)';
 
     SET @report_date = str_to_date(p_report_date, '%Y-%m-%e');
 
