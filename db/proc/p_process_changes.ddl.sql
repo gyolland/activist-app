@@ -41,12 +41,14 @@ BEGIN
     DECLARE l_zip VARCHAR(15) DEFAULT NULL;
     DECLARE l_start_date, l_end_date DATE DEFAULT NULL;
 
-    DECLARE c_unmatched VARCHAR(30) DEFAULT 'UNMATCHED';
-    DECLARE c_inactive  VARCHAR(30) DEFAULT 'INACTIVE';
-    DECLARE c_returning VARCHAR(30) DEFAULT 'RETURNING';
-    DECLARE c_current   VARCHAR(30) DEFAULT 'CURRENT';
-    DECLARE c_removed   VARCHAR(40) DEFAULT 'REMOVED';
-    DECLARE c_new       VARCHAR(40) DEFAULT 'NEW';
+    DECLARE c_unmatched     VARCHAR(30) DEFAULT 'UNMATCHED';
+    DECLARE c_inactive      VARCHAR(30) DEFAULT 'INACTIVE';
+    DECLARE c_returning     VARCHAR(30) DEFAULT 'RETURNING';
+    DECLARE c_current       VARCHAR(30) DEFAULT 'CURRENT';
+    DECLARE c_removed       VARCHAR(40) DEFAULT 'REMOVED';
+    DECLARE c_new           VARCHAR(40) DEFAULT 'NEW';
+    DECLARE c_res_add_typ   VARCHAR(4)  DEFAULT 'RESI';
+    DECLARE c_pcp_role      INT         DEFAULT 3;
 
     DECLARE c_upd CURSOR FOR
     SELECT -- select records where change report has person_id
@@ -94,7 +96,7 @@ BEGIN
         SET onError = TRUE;
 
         -- person_id, logmessage
-        EXECUTE insert_error USING @person_id, @msg;
+        -- EXECUTE insert_error USING @person_id, @msg;
     END;
 
     -- prepared statements
@@ -132,6 +134,8 @@ BEGIN
     upd: LOOP
       SET @person_id = NULL;
       SET @prid = NULL;
+      SET onError = FALSE;
+      SET @msg = NULL;
 
       /*FETCH c_upd INTO l_stg_id, l_member_id, l_fname, l_middlename, l_lname, l_suffix, l_precinct, 
         l_voter_id, l_address, l_city, l_state, l_zip, l_assignment, 
@@ -139,12 +143,13 @@ BEGIN
       FETCH c_upd INTO @stg_id, @member_id, @fname, @middlename, @lname, @suffix, @precinct, 
         @voter_id, @address, @city, @state, @zip, @assignment, @start_date, @end_date, @category;
         IF done = TRUE THEN
-            leave newpcp;
+            leave upd;
         END IF; 
 
-      IF l_category = c_removed
+      SET @err = NULL, @msg = NULL;
+
+      IF @category = c_removed
       THEN
-        SET @err = NULL, @msg = NULL;
         START TRANSACTION;
         CALL p_inactivate_member(@member_id, p_report_date, @err, @msg);
         IF @err IS FALSE
@@ -160,9 +165,10 @@ BEGIN
 
       END IF;
 
-      IF l_category = c_new
+      IF @category = c_new
       THEN
-        IF l_member_id IS NULL
+        START TRANSACTION;
+        IF @member_id IS NULL
           -- null member id insert t_person
           EXECUTE insert_person USING @fname, @middlename, @lname, @suffix, @precinct, @voter_id, @assignment;
 
@@ -170,15 +176,66 @@ BEGIN
           SET @member_id = LAST_INSERT_ID();
         THEN
         -- has member id, update t_person
+          -- SET @member_id = l_member_id;
           EXECUTE update_person USING @precinct, @assignment @member_id;
         END IF;
-        
-        -- addd person role record
+      
+        -- add person role record
         EXECUTE insert_person_role USING @member_id, 3, true, elected, @start_date, @end_date, false;
 
         -- add/update address
+        -- check to see if member has a residential address record
+        CALL p_address_exists(l_member_id, c_res_add_typ, @found, @error, @msg);
+
+        IF @error = TRUE
+        THEN
+          ROLLBACK;
+          SET @msg = CONCAT(c_new, ': ', @msg);
+          EXECUTE insert_error USING @member_id, @msg;
+          ITERATE upd;
+        END IF;
+
+        SET @zip5 = LEFT(TRIM(@zip), 5);
+        SET @zip4 = CASE WHEN LEN(TRIM(@zip)) > 5 THEN RIGHT(TRIM(@zip), 4) ELSE NULL END;
+        SET @address_type = c_res_add_typ;
+        IF @found = TRUE
+        THEN 
+          EXECUTE update_address USING @address, @city, @state, @zip5, @zip4, @member_id, @address_type;
+        ELSE
+          EXCEPT insert_address USING @member_id, @address_type, @address, @city, @state, @zip5, @zip4;
+        END IF;
+
+        COMMIT;
       END IF;
 
+      IF @category = c_returning
+      THEN
+        START TRANSACTION;
+        -- update person
+        EXECUTE update_person USING @precinct, @assignment @member_id;
+
+        -- add person role record
+        EXECUTE insert_person_role USING @member_id, 3, true, elected, @start_date, @end_date, false;
+
+        -- update address
+        SET @zip5 = LEFT(TRIM(@zip), 5);
+        SET @zip4 = CASE WHEN LEN(TRIM(@zip)) > 5 THEN RIGHT(TRIM(@zip), 4) ELSE NULL END;
+        SET @address_type = c_res_add_typ;
+        EXECUTE update_address USING @address, @city, @state, @zip5, @zip4, @member_id, @address_type;
+
+        IF onError = FALSE
+        THEN
+          COMMIT;
+        ELSE
+          ROLLBACK;
+          SET @msg = CONCAT(c_returning, ': ', @msg);
+          EXECUTE insert_error USING @member_id, @msg;
+          ITERATE upd;
+        END IF;
+      END IF;
+
+      -- need precinct change
+      -- need address change
 
     END LOOP; -- upd
 
