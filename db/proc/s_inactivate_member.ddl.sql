@@ -1,8 +1,8 @@
-DROP PROCEDURE IF EXISTS p_inactivate_member;
+DROP PROCEDURE IF EXISTS s_inactivate_member;
 
 DELIMITER //
 
-CREATE PROCEDURE p_inactivate_member(IN p_person_id INT, IN p_report_date DATE, OUT o_error BOOLEAN, OUT o_message TEXT)
+CREATE PROCEDURE s_inactivate_member(IN p_person_id INT, IN p_report_date DATE, OUT o_error BOOLEAN, OUT o_message TEXT)
 BEGIN
     DECLARE done INT DEFAULT FALSE;
     DECLARE onError INT DEFAULT FALSE;
@@ -57,9 +57,6 @@ BEGIN
 
         EXECUTE inactivate_person_role USING @end_date, @person_role_id;
         EXECUTE insert_change_log USING @person_id, @person_role_id, @action, @logmsg;
-        -- assuming a SQLEXCEPTION did not occur
-        SET o_error = FALSE;
-        SET o_message = NULL;
     ELSE
         SET o_error = TRUE;
         SET o_message = CONCAT(@errno, ': ', @msg);
