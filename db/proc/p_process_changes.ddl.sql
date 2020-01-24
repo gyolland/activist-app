@@ -1,28 +1,9 @@
-/*
-messaging
-Removed:
-removed:  XXXX | Name Name Name
-- id t_person_role record
-- update t_person_role record
-
-New:
-newpcp: XXXX | Name Name Name | address
-- check for member id: update t_person | insert into t_person
-- collect person id if member id is null, else use member id
-- insert into t_person_role
-- insert into address
-
-precinct: 1234 | Name Name Name | address
-address: 
-
-Returning:
-returning: XXXX | Name Name Name | address
-*/
-
-procedure: 
 DROP PROCEDURE IF EXISTS p_process_changes;
 
 DELIMITER //
+/* PROCEDURE: p_process_changes - read the member_stage table filtered by records in change_report table
+** and apply changes.
+*/
 
 CREATE PROCEDURE p_process_changes(IN p_report_date DATE)
 BEGIN
@@ -137,18 +118,18 @@ BEGIN
       SET onError = FALSE;
       SET @msg = NULL;
 
-      /*FETCH c_upd INTO l_stg_id, l_member_id, l_fname, l_middlename, l_lname, l_suffix, l_precinct, 
+      FETCH c_upd INTO l_stg_id, l_member_id, l_fname, l_midname, l_lname, l_suffix, l_precinct, 
         l_voter_id, l_address, l_city, l_state, l_zip, l_assignment, 
-        l_start_date, l_end_date, l_category; */
-      FETCH c_upd INTO @stg_id, @member_id, @fname, @middlename, @lname, @suffix, @precinct, 
-        @voter_id, @address, @city, @state, @zip, @assignment, @start_date, @end_date, @category;
+        l_start_date, l_end_date, l_category; 
+      /* FETCH c_upd INTO @stg_id, @member_id, @fname, @middlename, @lname, @suffix, @precinct, 
+        @voter_id, @address, @city, @state, @zip, @assignment, @start_date, @end_date, @category; */
         IF done = TRUE THEN
             leave upd;
         END IF; 
 
       SET @err = NULL, @msg = NULL;
 
-      IF @category = c_removed
+      IF l_category = c_removed
       THEN
         START TRANSACTION;
         CALL s_inactivate_member(@member_id, p_report_date, @err, @msg);

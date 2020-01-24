@@ -18,6 +18,7 @@ BEGIN
     DECLARE c_returning VARCHAR(30) DEFAULT 'RETURNING';
     DECLARE c_current   VARCHAR(30) DEFAULT 'CURRENT';
     DECLARE c_removed   VARCHAR(40) DEFAULT 'REMOVED';
+    DECLARE c_new       VARCHAR(40) DEFAULT 'NEW';
 
     -- cursor to test which members have changed data 
     -- compares person to member stage
@@ -52,8 +53,27 @@ BEGIN
             GROUP BY person_id  ) r0 ON p.id = r0.person_id
         JOIN (SELECT * FROM t_address WHERE type = 'RESI') a ON p.id = a.person_id
         LEFT JOIN exception e ON p.id = e.person_id
-        LEFT JOIN member_stage m ON p.id = m.member_id) active_member
-    WHERE status <> c_inactive ;
+        LEFT JOIN member_stage m ON p.id = m.member_id
+        UNION
+		SELECT
+              m.member_id
+            , NULL  AS precinct
+            , NULL  AS fname
+            , NULL  AS middlename
+            , NULL            AS lname
+            , NULL                AS  address
+            , m.precinct      AS mprecinct
+            , m.fname         AS mfname
+            , m.middlename    AS mmiddlename
+            , m.lname         AS mlname
+            , m.r_address     AS mr_address
+            , 'NEW' AS status
+            , m.stg_id
+		FROM member_stage m
+        LEFT JOIN t_person p ON m.member_id = p.id
+        WHERE p.id IS NULL
+        ) active_member
+    WHERE status <> 'INACTIVE' ;
 
 
     -- condition/exception handlers
@@ -90,7 +110,8 @@ BEGIN
         SET onError = FALSE;
         SET changed = FALSE;
         SET @person_id = NULL;
-        SET @person_name = NULL;
+        SET @new_person_name = NULL;
+        SET @old_person_name = NULL;
         SET @category = NULL;
         SET @msg_new = NULL;
         SET @msg_old = NULL;
@@ -105,10 +126,13 @@ BEGIN
 
         SET @person_id = l_member_id;
         SET @stg_id = l_stg_id ;
-        SET @person_name = REPLACE(CONCAT_WS(' ', ifnull(l_mfname, l_fname), ifnull(l_mmiddlename, l_middlename), ifnull(l_mlname, l_lname)), '  ', ' ');
-        -- SET @msg = CONCAT_WS(' ', ifnull(l_mprecinct, l_precinct),'|', @person_name, '|', ifnull(l_maddress, l_address));
-        SET @msg_new = CONCAT_WS(' ', l_mprecinct, '|', @person_name, '|', l_maddress);
-        SET @msg_old = CONCAT_WS(' ', l_precinct, '|', @person_name, '|', l_address);
+        IF l_status <> c_new
+        THEN
+            SET @old_person_name = REPLACE(CONCAT_WS(' ', l_fname, l_middlename, l_lname), '  ', ' ');
+            SET @msg_old = CONCAT_WS(' ', l_precinct, '|', @old_person_name, '|', l_address);
+        END IF;
+        SET @new_person_name = REPLACE(CONCAT_WS(' ', l_mfname, l_mmiddlename, l_mlname), '  ', ' ');
+        SET @msg_new = CONCAT_WS(' ', l_mprecinct, '|', @new_person_name, '|', l_maddress);
         
         CASE l_status
         WHEN c_inactive THEN
@@ -135,6 +159,9 @@ BEGIN
                 SET changed = TRUE;
                 SET @category = CONCAT(IFNULL(@category, ''), ', ADDRESS');
             END IF;
+        WHEN c_new THEN
+            SET changed = TRUE;
+            SET @category = c_new;
         END CASE;  -- end case
 
         IF l_status = c_unmatched OR l_status = c_returning OR changed  = TRUE THEN
