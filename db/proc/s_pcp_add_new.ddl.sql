@@ -1,6 +1,6 @@
 DROP PROCEDURE IF EXISTS s_pcp_add_new;
 /* Prodedure: s_pcp_add_new - and single new pcp. Built as a subroutine to be used by other procedures
-
+** Also handles returning PCP, person who previously had been a PCP.
 */
 DELIMITER //
 

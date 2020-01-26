@@ -117,6 +117,7 @@ BEGIN
       SET @prid = NULL;
       SET onError = FALSE;
       SET @msg = NULL;
+      SET @elected = FALSE;
 
       FETCH c_upd INTO l_stg_id, l_member_id, l_fname, l_midname, l_lname, l_suffix, l_precinct, 
         l_voter_id, l_address, l_city, l_state, l_zip, l_assignment, 
@@ -128,6 +129,21 @@ BEGIN
         END IF; 
 
       SET @err = NULL, @msg = NULL;
+      SET @pcp_role = c_pcp_role;
+
+      SET @stg_id = l_stg_id;
+      SET @member_id = l_member_id;
+      SET @fname = l_fname;
+      SET @middlename = l_midname;
+      SET @lname = l_lname;
+      SET @suffix = l_suffix;
+      SET @precinct = l_precinct;
+      SET @voter_id = l_voter_id;
+      SET @address = l_address;
+      SET @city = l_city;
+      SET @state = l_state;
+      SET @zip = l_zip;
+      SET @assignment = l_assingment;
 
       IF l_category = c_removed
       THEN
@@ -146,6 +162,7 @@ BEGIN
       END IF;
 
       IF @category = c_new
+      OR @category = c_returning
       THEN
         START TRANSACTION;
         CALL s_pcp_add_new(@member_id, @fname, @middlename, @lname, @suffix, @precinct, @voter_id, 
@@ -156,33 +173,11 @@ BEGIN
             ITERATE upd;
         ELSE
             ROLLBACK;
-            SET @msg = CONCAT(c_new, ': ', @msg);
+            SET @msg = CONCAT_WS(' ', @category, ':', @msg);
             EXECUTE insert_error USING @member_id, @msg;
             ITERATE upd;
         END IF;
-      END IF;  -- c_new
-
-      IF @category = c_returning
-      THEN
-        START TRANSACTION;
-        -- update person
-        EXECUTE update_person USING @precinct, @assignment @member_id;
-
-        -- add person role record
-        EXECUTE insert_person_role USING @member_id, 3, true, elected, @start_date, @end_date, false;
-
-        -- update address
-        CALL s_address_upd_add(@member_id, @address_type, @address, @city, @state, @zip, @err, @msg) ;
-        IF onError = FALSE
-        THEN
-          COMMIT;
-        ELSE
-          ROLLBACK;
-          SET @msg = CONCAT(c_returning, ': ', @msg);
-          EXECUTE insert_error USING @member_id, @msg;
-          ITERATE upd;
-        END IF;
-      END IF;
+      END IF;  -- c_new/c_returning
 
       /* Assumption is that precinct and address will almost always come together.
       ** However there are rare scenarios where one or the other could be independent
