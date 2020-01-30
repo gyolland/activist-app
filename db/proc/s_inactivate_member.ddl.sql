@@ -7,12 +7,7 @@ BEGIN
     DECLARE done INT DEFAULT FALSE;
     DECLARE onError INT DEFAULT FALSE;
 
-    DECLARE v_person_id         INT         DEFAULT NULL;
-    DECLARE v_inactive          BOOLEAN     DEFAULT FALSE;
-    DECLARE v_person_role_id    INT         DEFAULT NULL;
-
     DECLARE c_pcp_role_id       INT         DEFAULT 3;
-    DECLARE c_inactive_true     BOOLEAN     DEFAULT TRUE;
     DECLARE c_inactive_false    BOOLEAN     DEFAULT FALSE;
     DECLARE c_action            VARCHAR(20) DEFAULT 'REMOVED';
 
@@ -26,34 +21,37 @@ BEGIN
         SET o_error = TRUE;
     END;
 
+    -- prepared statements
     PREPARE inactivate_person_role
     FROM -- WARNING id is t_person_role.id NOT t_person_role.person_id.
-      'UPDATE t_person_role SET term_end_date = ?, inactive = TRUE WHERE id = ?'; 
+      'UPDATE t_person_role SET term_end_date = ?, inactive = TRUE WHERE id = ?';
 
-    PREPARE insert_change_log
-    FROM
-      'INSERT INTO t_change_log(person_id, person_role_id, action, logmessage) VALUES (?, ?, ?, ?)';
+    SET o_error = FALSE;
+    SET o_message = NULL;
+    SET @errno = FALSE;
+    SET @msg = NULL;
+    SET @person_role_id = NULL;
 
     SET @end_date = p_report_date;
     SET @person_id = p_person_id;
     SET @action = c_action;
 
-    SELECT id 
+    SELECT id
       INTO @person_role_id
       FROM t_person_role
      WHERE person_id = @person_id
        AND role_id   = c_pcp_role_id
        AND inactive  = c_inactive_false;
-    
+
     GET CURRENT DIAGNOSTICS CONDITION 1
     @errno = MYSQL_ERRNO, @msg = MESSAGE_TEXT;
 
-    IF @errno IS NULL
+    IF @errno IS FALSE
     THEN
-        SELECT CONCAT_WS(' ', precinct, '|', fname, middlename, lname) 
+        SELECT CONCAT_WS(' ', precinct, '|', fname, middlename, lname)
           INTO @logmsg
           FROM t_person
-         WHERE id = @person_id; 
+         WHERE id = @person_id;
 
         EXECUTE inactivate_person_role USING @end_date, @person_role_id;
         EXECUTE insert_change_log USING @person_id, @person_role_id, @action, @logmsg;
@@ -63,7 +61,6 @@ BEGIN
     END IF;
 
     DEALLOCATE PREPARE inactivate_person_role;
-    DEALLOCATE PREPARE insert_change_log;
 END //
 
 DELIMITER ;

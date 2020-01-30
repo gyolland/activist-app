@@ -143,7 +143,7 @@ BEGIN
       SET @city = l_city;
       SET @state = l_state;
       SET @zip = l_zip;
-      SET @assignment = l_assingment;
+      SET @assignment = l_assignment;
 
       IF l_category = c_removed
       THEN
