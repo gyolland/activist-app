@@ -79,7 +79,7 @@ BEGIN
         GET CURRENT DIAGNOSTICS CONDITION 1
         @errno = MYSQL_ERRNO, @msg = MESSAGE_TEXT;
 
-        IF @errno IS NOT NULL
+        IF @errno <> FALSE
         THEN
             -- maybe report error: Role record not found
             SET @msg        = CONCAT_WS(' ', 'MEMBER_ID:', @member_id, '|', 'No active person role record found');
