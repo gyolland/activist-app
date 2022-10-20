@@ -1,0 +1,22 @@
+CREATE TABLE gold_import_tmp (
+  hd44ID int DEFAULT NULL,
+  VANID varchar(50),
+  CD int DEFAULT NULL,
+  SD int DEFAULT NULL,
+  HD int DEFAULT NULL,
+  Precinct varchar(50),
+  LastName varchar(50),
+  FirstName varchar(50),
+  MiddleName varchar(50),
+  Suffix varchar(50),
+  PreferredEmail varchar(50),
+  Address varchar(50),
+  City varchar(50),
+  StateProvince varchar(50),
+  Zip5 int DEFAULT NULL,
+  Zip4 varchar(50),
+  CountryCode varchar(50),
+  HomePhone varchar(50),
+  CellPhone varchar(50),
+  ELECTED_or_APPTD varchar(50)
+) ;
